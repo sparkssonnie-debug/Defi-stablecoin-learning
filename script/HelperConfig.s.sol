@@ -25,7 +25,7 @@ contract HelperConfig is Script {
         if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaConfig();
         } else {
-            activeNetworkConfig = getOrCreateAnvilConfig();  
+            activeNetworkConfig = getOrCreateAnvilConfig();
         }
     }
 
@@ -33,30 +33,40 @@ contract HelperConfig is Script {
         return NetworkConfig({
             wethUsdPriceFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306,
             wbtcUsdPriceFeed: 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43,
-            weth: 0xDD13E55209Fd76AfE204dBda4007C227904f0a81,
-            wbtc: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063,
-    })}
+            weth: 0xdd13E55209Fd76AfE204dBda4007C227904f0a81,
+            wbtc: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063
+        });
+    }
 
-    function getOrCreateAnvilConfig() public view returns (NetworkConfig memory) {
+    function getOrCreateAnvilConfig() public returns (NetworkConfig memory) {
         if (activeNetworkConfig.wethUsdPriceFeed != address(0)) {
             return activeNetworkConfig;
         }
 
         vm.startBroadcast();
         MockV3Aggregator ethUsdPriceFeed = new MockV3Aggregator(DECIMALS, ETH_USD_PRICE); // $2,000
-        ERC20Mock wethMock = new ERC20Mock("WETH", "WETH", msg.sender, 1000e8);
-        
+        ERC20Mock wethMock = new ERC20Mock("Wrapped Ether", "WETH");
+        wethMock.mint(msg.sender, 1000e18);
+
         MockV3Aggregator btcUsdPriceFeed = new MockV3Aggregator(DECIMALS, BTC_USD_PRICE); // $4,000
-        ERC20Mock wbtcMock = new ERC20Mock("Wrapped BTC", "WBTC", msg.sender, 1000e8);
+        ERC20Mock wbtcMock = new ERC20Mock("Wrapped Bitcoin", "WBTC");
+        wbtcMock.mint(msg.sender, 1000e8);
         vm.stopBroadcast();
 
         return NetworkConfig({
-            wethUsdPriceFeed: ethUsdPriceFeed.address,
-            wbtcUsdPriceFeed: btcUsdPriceFeed.address,
-            weth: wethMock.address,
-            wbtc: wbtcMock.address,
-        }); 
+            wethUsdPriceFeed: address(ethUsdPriceFeed),
+            wbtcUsdPriceFeed: address(btcUsdPriceFeed),
+            weth: address(wethMock),
+            wbtc: address(wbtcMock)
+        });
     }
 
-    
+    function getActiveConfig() public view returns (address, address, address, address) {
+        return (
+            activeNetworkConfig.wethUsdPriceFeed,
+            activeNetworkConfig.wbtcUsdPriceFeed,
+            activeNetworkConfig.weth,
+            activeNetworkConfig.wbtc
+        );
+    }
 }
